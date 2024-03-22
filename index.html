@@ -16,59 +16,92 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <style>
+    <style media="screen">
         div.v-card-actions {
             margin: auto;
         }
+        .background{
+    width: 700px;
+    height: 200px;
+    position: absolute;
+    transform: translate(-50%,-50%);
+    left: 55%;
+    right: 10%;
+    top: 10%;
+    
+}
+.shape:first-child{
+    background: linear-gradient(
+        #055e95,
+        #18adcb
+    );
+    left: -150px;
+    top: -100;
+    filter: blur(10px);
+}
+.shape:last-child{
+    background: linear-gradient(
+        to right,
+        #11af0e,
+        #19f024
+    );
+    right: 20px;
+    bottom: 20px;
+    filter: blur(10px);
+}
+.background .shape{
+    height: 100px;
+    width: 100px;
+    position: absolute;
+    border-radius: 50%;
+}
+.card{
+    height: 300px;
+    width: 400px;
+    background-color: rgba(255,255,255,0.13);
+    position: absolute;
+    transform: translate(-50%,-50%);
+    top: 50%;
+    left: 50%;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 0 40px rgba(8,7,16,0.6);
+    padding: 50px 35px;
+}
     </style>
 </head>
 
 
 <body>
     <div id="app">
-        <v-app>
-            <v-container>
-                <v-card>
-
-
-                    <v-card-text class="pa-6">
-                        <v-card-actions>
-                            <template v-if="user">
-                                <div class="pa-2">
-                                    <v-avatar><img :src="user.photoURL" /></v-avatar>
-                                </div>
-                                <div class="pa-2">
-
-
-                                    {{user.displayName}}<br />
-                                    {{user.email}}<br />
-                                    {{ roleMessage }} <!-- แสดงข้อความบทบาท -->
-                                </div>
-                            </template>
-                            <v-btn @click="google_login()" v-if="!user"> <i class="fab fa-google"></i> login</v-btn>
-                            <v-btn @click="google_logout()" v-if="user"> Logout</v-btn>
-
-
-                        </v-card-actions>
-
-
-                        <!-- <pre>{{students}}</pre> -->
-
-
-                        <br />
-                        <br />
-
-
-                    </v-card-text>
-
-
-                </v-card>
-
-
-            </v-container>
+        <v-app style="background-color: #080710;">
+            <v-main>
+                <v-container fluid>
+                    <v-row justify="center">
+                        <v-col cols="12" md="6">
+                            <v-card class="elevation-12" style="text-align: center;">
+                                <v-card-title class="blue-grey darken-1 white--text">
+                                    <span class="headline">Check Class</span>
+                                </v-card-title>
+                                <v-card-text>
+                                    <!-- ส่วนเนื้อหา -->
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-btn color="blue darken-1" dark @click="google_login()" v-if="!user">Login</v-btn>
+                                    <v-btn color="red darken-1" dark @click="google_logout()" v-if="user">Logout</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </v-main>
         </v-app>
+    </div>    
+    <div class="background">
+        <div class="shape"></div>
+        <div class="shape"></div>
     </div>
-
 
     <script>
         const firebaseConfig = {
@@ -97,21 +130,22 @@
                 };
             },
             mounted() {
-                firebase.auth().onAuthStateChanged((user) => {
-                    if (user) {
-                        this.user = user.toJSON();
-                        if (this.user.email.endsWith('@gmail.com')) {
-                            this.roleMessage = 'คุณเป็นนักศึกษา';
-                        } else if (this.user.email.endsWith('@kkumail.com')) {
-                            this.roleMessage = 'คุณเป็นอาจารย์';
-                        }
-                    } else if (this.user.email.endsWith('@kku.ac.th')) {
-                        this.roleMessage = 'คุณเป็นอาจารย์';
-                    } else {
-                        this.user = null;
-                    }
-                });
-            },
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            this.user = user.toJSON();
+            if (this.user.email.endsWith('@gmail.com')) {
+                this.roleMessage = 'คุณเป็นนักศึกษา';
+                window.location.href = "students.html";
+            } else if (this.user.email.endsWith('@kkumail.com')) {
+                this.roleMessage = 'คุณเป็นอาจารย์';
+                // ถ้าเป็นอาจารย์ให้เปลี่ยนไปยังหน้า teachers.html
+                window.location.href = "teachers.html";
+            }
+        } else {
+            this.user = null;
+        }
+    });
+},
 
             methods: {
                 readData() {
