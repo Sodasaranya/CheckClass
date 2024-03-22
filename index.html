@@ -135,11 +135,11 @@
             this.user = user.toJSON();
             if (this.user.email.endsWith('@gmail.com')) {
                 this.roleMessage = 'คุณเป็นนักศึกษา';
-                window.location.href = "students.html";
+                window.location.href = "./students.html";
             } else if (this.user.email.endsWith('@kkumail.com')) {
                 this.roleMessage = 'คุณเป็นอาจารย์';
                 // ถ้าเป็นอาจารย์ให้เปลี่ยนไปยังหน้า teachers.html
-                window.location.href = "teachers.html";
+                window.location.href = "./teachers.html";
             }
         } else {
             this.user = null;
