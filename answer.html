@@ -1,0 +1,274 @@
+<html lang="en">
+  <head>
+    <title>Student Page</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link  href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="app">
+      <v-app>
+        <v-container>
+          <v-card>
+            <v-card-title class="bg-blue-grey">{{title}}</v-card-title>
+            <v-card-text class="pa-6">
+                <v-card-actions>
+                    <template v-if="user">
+                       <div class="pa-2">
+                          <v-avatar><img :src="user.photoURL" /></v-avatar>
+                       </div>
+                       <div class="pa-2">
+                          {{user.displayName}}<br />
+                          {{user.email}}<br />
+                       </div>
+                   </template>
+                </v-card-actions>
+            </v-card-text>
+                <v-btn @click="addAnswer()" class="bg-yellow-500 text-white hover:bg-yellow-600">ตอบคำถาม</v-btn>
+              </v-card-actions>
+          </v-card>
+          <v-card v-if="editmode">
+            <v-card-text class="pa-6">
+                <v-card-title class="bg-blue-grey">{{editmode}}</v-card-title>
+<v-card-text class="pa-6">
+    <v-list>
+        <v-list-item v-for="question in questions" :key="question.question" @click="selectQuestion(question)">
+            <v-list-item-title>{{ question.question }}</v-list-item-title>
+        </v-list-item>
+    </v-list>
+    <v-text-field v-model="editclass.answer" label="ตอบคำถาม"></v-text-field>
+</v-card-text>
+           </v-card-text>
+           <v-card-actions>
+                <v-btn @click="savedata()">Save</v-btn>
+                <v-btn @click="editmode=0">Cancel</v-btn>
+           </v-card-actions>
+         </v-card>
+         <!-- <v-dialog v-model="dialogClassSelect">
+          <v-card>
+            <v-card-title>คำตอบ</v-card-title>
+            <v-card-text>
+              <v-list>
+                <v-list-item v-for="question in questions" :key="question.id" @click="selectSubject(question.answer)">
+                    <v-list-item-title>{{ question.answer }}</v-list-item-title>
+                </v-list-item>                
+              </v-list>
+            </v-card-text>
+          </v-card>
+        </v-dialog> -->
+        <div class="position-fixed top-0 start-0 p-3">
+            <a href="./students.html" class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i>กลับ
+            </a>
+        </div>
+        </v-container>        
+      </v-app>
+    </div>
+
+    <script>
+       const firebaseConfig = {
+          apiKey: "AIzaSyD7CKlzfJN96YAVi9dhoI2oiXR8-2ErmiI",
+          authDomain: "check-class-cf176.firebaseapp.com",
+          projectId: "check-class-cf176",
+          storageBucket: "check-class-cf176.appspot.com",
+          messagingSenderId: "44347073660",
+          appId: "1:44347073660:web:3ba2ce241b9b5e8c5f95f9",
+          measurementId: "G-C9ZL0K6BZN"
+       };
+       firebase.initializeApp(firebaseConfig);  
+       const db = firebase.firestore();
+
+      const vuetify = Vuetify.createVuetify();
+      const app = Vue.createApp({
+        data() {
+          return {
+            title: "Question",
+            teachers: [],
+            checkin: [],
+            subject: [],
+            editclass : {},
+            editmode : 0,
+            user: null,
+            uteachers: null,
+            dialogClassSelect: false,
+            selectedSubject: null,
+            attendanceList: [],
+            questions: []
+          };
+        },
+        mounted() {
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            this.user = user.toJSON();
+            this.checkUserRole();
+        } else {
+            this.user = null;
+        }
+    });
+},
+methods: {
+    google_login() {
+        var provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope("profile");
+        provider.addScope("email");
+        firebase.auth().signInWithPopup(provider);
+    },
+    google_logout() {
+        firebase.auth().signOut()
+            .then(() => {
+                this.redirectToIndex();
+            })
+            .catch((error) => {
+                console.error("Logout error: ", error);
+            });
+    },
+    addAnswer() {
+    this.editmode = "ตอบคำถาม";
+    // ดึงข้อมูลคำถามจากคอลเล็กชัน "question"
+    db.collection("question").get()
+        .then((querySnapshot) => {
+            const questions = [];
+            querySnapshot.forEach((doc) => {
+                questions.push({
+                    id: doc.id,
+                    question: doc.data().question
+                });
+            });
+            // กำหนดคำถามใน dropdown menu
+            this.questions = questions;
+            // กำหนดค่าเริ่มต้นของคำถามและคำตอบ
+            this.editclass = {
+                question: this.questions[0].question,
+                answer: ''
+            };
+        })
+        .catch((error) => {
+            console.error("Error fetching questions: ", error);
+            alert("Error fetching questions. Please try again.");
+        });
+},
+selectQuestion(question) {
+        // Set selected question for display
+        this.editclass.question = question.question;
+        
+        // Fetch answers for the selected question from the "answer" collection
+        db.collection("answer")
+            .where("question_question", "==", question.question)
+            .get()
+            .then((querySnapshot) => {
+                const answers = [];
+                querySnapshot.forEach((doc) => {
+                    answers.push({
+                        id: doc.id,
+                        answer: doc.data().answer
+                    });
+                });
+                // Set answers for the selected question
+                this.answers = answers;
+            })
+            .catch((error) => {
+                console.error("Error fetching answers: ", error);
+                alert("Error fetching answers. Please try again.");
+            });
+    },
+fetchSubjects() {
+    // Fetch questions from the "question" collection in Firebase
+    db.collection("question").get()
+        .then((querySnapshot) => {
+            const questions = [];
+            querySnapshot.forEach((doc) => {
+                questions.push({
+                    id: doc.id,
+                    question: doc.data().question
+                });
+            });
+            // Set questions for dropdown menu
+            this.questions = questions;
+            // Set initial question and answer values
+            this.editclass = {
+                question: this.questions[0].question,
+                answer: ''
+            };
+        })
+        .catch((error) => {
+            console.error("Error fetching questions: ", error);
+            alert("Error fetching questions. Please try again.");
+        });
+},
+  openSubjectDialog() {
+    this.dialogClassSelect = true; // Open the dialog
+    this.fetchSubjects();
+  },
+  question(subject) {
+    this.selectedSubject = subject;
+    this.dialogClassSelect = false; // Close the dialog after selecting a subject
+    // Optionally, you can perform any additional actions after selecting a subject
+  },
+    redirectToIndex() {
+        window.location.href = "./index.html";
+    },
+    checkUserRole() {
+        const email = this.user.email;
+        this.isTeacher = email.includes("@kkumail.com");
+    },
+    async submitQuestion() {
+                    try {
+                        for (const question of this.questions) {
+                            const questionData = {
+                                questionText: question.text,
+                                roomId: roomId
+                            };
+                            const docRef = await db.collection("questions").add(questionData);
+                            console.log("Question written with ID: ", docRef.id);
+                            this.existingQuestions.push({
+                                id: docRef.id,
+                                text: question.text,
+                                roomId: roomId,
+                                answer: [] 
+                            });
+                        }
+                        await this.fetchQuestions();
+                        this.resetQuestionIndex();
+                        this.questions = [];
+
+                        alert("Questions submitted successfully.");
+                    } catch (error) {
+                        console.error("Error adding questions: ", error);
+                    }
+                },
+                savedata() {
+    // เช็คว่า editclass มีค่าหรือไม่
+    if (Object.keys(this.editclass).length === 0 && this.editclass.constructor === Object) {
+        console.error("No data to save.");
+        return;
+    }
+    
+    // เพิ่มข้อมูลคำถามลงในคอลเล็กชัน "question"
+    db.collection("question").add(this.editclass)
+        .then((docRef) => {
+            console.log("Question added with ID: ", docRef.id);
+            // ล้างข้อมูลที่ถูกแก้ไข
+            this.editclass = {};
+            this.editmode = 0;
+            alert("Answer added successfully!");
+        })
+        .catch((error) => {
+            console.error("Error adding question: ", error);
+            alert("Error adding question. Please try again.");
+        });
+},
+
+    selectSubject(subjectId) {
+    window.location.href = "./class.html?subjectId=" + subjectId;
+},
+    
+},
+      });
+      app.use(vuetify).mount("#app");
+    </script>
+  </body>
+</html>
